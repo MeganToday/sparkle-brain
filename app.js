@@ -7,6 +7,8 @@
   const WRONG_LOCK_MS = 3000;     // minimum wait after a wrong answer
   const NEXT_DELAY_MS = 3000;     // wait after a right answer before moving on
   const NAME = 'Adele';
+  // Which grade levels' questions are used ('K', '1', '2'). Add '2' back to turn on 2nd grade.
+  const ACTIVE_GRADES = ['K', '1'];
 
   const TESTS = [
     { group: 'Shapes & Patterns', items: [
@@ -26,7 +28,11 @@
     ]},
   ];
 
-  const BANKS = window.QUESTION_BANKS || {};
+  const BANKS = {};
+  Object.entries(window.QUESTION_BANKS || {}).forEach(([id, bank]) => {
+    const questions = bank.questions.filter((q) => !q.grade || ACTIVE_GRADES.includes(q.grade));
+    if (questions.length) BANKS[id] = { ...bank, questions };
+  });
   const $ = (s) => document.querySelector(s);
 
   // ---------------- helpers ----------------
