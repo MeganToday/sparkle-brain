@@ -284,6 +284,7 @@ h1 {
 }
 .hint.show { opacity: 1; transform: none; }
 .hint.oops { color: #b3122f; background: rgba(255,240,244,.92); }
+.hint.yay { color: #15803d; background: rgba(236,253,243,.94); }
 
 /* bursts */
 .burst {

@@ -6,7 +6,10 @@
   const SECTION_ROUND = 10;       // questions per round for a single section
   const MIX_ROUND = 15;           // questions per round for the mixes
   const WRONG_LOCK_MS = 3000;     // minimum wait after a wrong answer
-  const NEXT_DELAY_MS = 3000;     // wait after a right answer before moving on
+  const NEXT_DELAY_MS = 3000;     // minimum wait after a right answer before moving on
+  const AFTER_REASON_MS = 1000;   // pause after the "Yes, ..." reason finishes reading
+  const CHEERS = ['Yes! Good job!', 'Yes! You got it!', 'Yes! Way to keep trying!', 'Yes! Great thinking!',
+    'Yes! You figured it out!', 'Yes! Super job!'];
 
   const SECTIONS = window.SECTIONS || [];
   const QUESTIONS = window.QUESTIONS || [];
@@ -253,11 +256,12 @@
     }
   }
 
-  function setHint(text, oops = false) {
+  function setHint(text, oops = false, yay = false) {
     const h = $('#hint');
     if (!text) { h.classList.remove('show'); return; }
     h.textContent = text;
     h.classList.toggle('oops', oops);
+    h.classList.toggle('yay', yay);
     h.classList.add('show');
   }
 
@@ -367,8 +371,13 @@
         const pos = Math.min(round.deck.length, 2 + Math.floor(Math.random() * 3));
         round.deck.splice(pos, 0, round.current);
       }
-      setHint('');
-      await sleep(NEXT_DELAY_MS);
+      // read the reason ("Yes, ..."), then give it a second to sink in before moving on.
+      // If she already heard the hint after a wrong try, just cheer instead.
+      const said = round.missedNow && q.hint ? CHEERS[Math.floor(Math.random() * CHEERS.length)] : q.explain;
+      setHint(said, false, true);
+      const reading = sleep(700).then(() => (token === roundToken ? speak(said) : null))
+        .then(() => sleep(AFTER_REASON_MS));
+      await Promise.all([reading, sleep(NEXT_DELAY_MS)]);
       if (token === roundToken) nextQuestion();
     } else {
       round.missedNow = true;
