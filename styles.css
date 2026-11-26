@@ -129,8 +129,22 @@ h1 {
 }
 .tile.ready .tile-soon { color: #fff; opacity: .95; }
 @keyframes glow { 50% { box-shadow: 0 6px 0 #7b3fd6, 0 12px 34px rgba(255,100,200,.65); } }
-.tile-test { width: 100%; min-height: 96px; flex-direction: row; gap: 16px; margin-top: 8px; }
-.tile-test .tile-name { font-size: 24px; }
+.tiles-big .tile { min-height: 168px; }
+.tiles-big .tile-icon { font-size: 54px; }
+.tiles-big .tile-name { font-size: 22px; }
+.tiles-mix { grid-template-columns: repeat(2, 1fr); }
+.tile.mix {
+  min-height: 140px;
+  background: linear-gradient(135deg, #ffb3dd, #c79bff 55%, #8fb8ff);
+  color: #fff;
+  box-shadow: 0 6px 0 #6b47d6, 0 12px 28px rgba(120,80,230,.35);
+}
+.tile.mix .tile-name { font-size: 24px; }
+.tile.mix .tile-soon { color: #fff; }
+.tile.mix small { font-weight: 600; opacity: .9; }
+.tile.ready:not(.big):not(.mix) { background: rgba(255,255,255,.92); color: var(--ink); animation: none;
+  box-shadow: 0 6px 0 #e2c6ff, 0 10px 24px rgba(140,70,220,.18); }
+.tile.ready:not(.big):not(.mix) .tile-soon { color: #a27cc9; }
 
 /* ---------- quiz ---------- */
 #screen-quiz { flex-direction: column; }
@@ -151,7 +165,11 @@ h1 {
 .round-btn.pulse { animation: pulse 1s ease-in-out infinite; }
 @keyframes pulse { 50% { transform: scale(1.1); box-shadow: 0 4px 0 #dcbcff, 0 0 0 8px rgba(255,95,180,.25); } }
 
-.stars { display: flex; gap: clamp(2px, 1vw, 8px); justify-content: center; flex: 1; }
+.head-mid { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.sec-label { font-size: clamp(14px, 2.2vw, 18px); font-weight: 800; color: var(--purple-deep); opacity: .85; white-space: nowrap; }
+.stars { display: flex; gap: clamp(2px, 1vw, 8px); justify-content: center; }
+.stars.many { gap: clamp(1px, .5vw, 4px); }
+.stars.many span { font-size: clamp(16px, 2.8vw, 26px); }
 .stars span {
   font-size: clamp(22px, 4vw, 34px);
   line-height: 1;
@@ -191,8 +209,7 @@ h1 {
 
 .choice {
   position: absolute;
-  bottom: 0;
-  border-radius: 20px;
+  border-radius: 16px;
   transition: background .2s;
 }
 .choice:active:not(:disabled) { background: rgba(255, 95, 180, .07); }
@@ -205,8 +222,8 @@ h1 {
 .bubble {
   position: absolute;
   left: 50%;
-  width: 34%;
   max-width: 64px;
+  min-width: 26px;
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   border-radius: 50%;

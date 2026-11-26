@@ -3,39 +3,23 @@
 
   // ---------------- settings ----------------
   const SECRET_CODE = '0406';
-  const QUESTIONS_PER_ROUND = 10;
+  const SECTION_ROUND = 10;       // questions per round for a single section
+  const MIX_ROUND = 15;           // questions per round for the mixes
   const WRONG_LOCK_MS = 3000;     // minimum wait after a wrong answer
   const NEXT_DELAY_MS = 3000;     // wait after a right answer before moving on
-  const NAME = 'Adele';
-  // Which grade levels' questions are used ('K', '1', '2'). Add '2' back to turn on 2nd grade.
-  const ACTIVE_GRADES = ['K', '1'];
 
-  const TESTS = [
-    { group: 'Shapes & Patterns', items: [
-      { id: 'figure-classification', name: 'Figure Classification', icon: '🔷' },
-      { id: 'figure-matrices', name: 'Figure Matrices', icon: '🧩' },
-      { id: 'paper-folding', name: 'Paper Folding', icon: '📄' },
-    ]},
-    { group: 'Pictures & Words', items: [
-      { id: 'picture-analogies', name: 'Picture Analogies', icon: '🐶' },
-      { id: 'picture-classification', name: 'Picture Classification', icon: '🍎' },
-      { id: 'sentence-completion', name: 'Sentence Completion', icon: '💬' },
-    ]},
-    { group: 'Numbers', items: [
-      { id: 'number-analogies', name: 'Number Analogies', icon: '🔢' },
-      { id: 'number-puzzles', name: 'Number Puzzles', icon: '➕' },
-      { id: 'number-series', name: 'Number Series', icon: '🧮' },
-    ]},
+  const SECTIONS = window.SECTIONS || [];
+  const QUESTIONS = window.QUESTIONS || [];
+  const SEC = Object.fromEntries(SECTIONS.map((s) => [s.id, s]));
+  const BIG3 = SECTIONS.filter((s) => s.big).map((s) => s.id);
+  const MIXES = [
+    { id: 'mix-big3', name: 'Big 3 Mix', icon: '🌟', sections: BIG3, count: MIX_ROUND,
+      blurb: SECTIONS.filter((s) => s.big).map((s) => s.name).join(' · ') },
+    { id: 'mix-all', name: 'Everything Mix', icon: '🌈', sections: SECTIONS.map((s) => s.id), count: MIX_ROUND,
+      blurb: 'All 9 kinds of questions' },
   ];
 
-  const BANKS = {};
-  Object.entries(window.QUESTION_BANKS || {}).forEach(([id, bank]) => {
-    const questions = bank.questions.filter((q) => !q.grade || ACTIVE_GRADES.includes(q.grade));
-    if (questions.length) BANKS[id] = { ...bank, questions };
-  });
   const $ = (s) => document.querySelector(s);
-
-  // ---------------- helpers ----------------
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   function shuffle(arr) {
     const a = arr.slice();
@@ -193,27 +177,37 @@
   });
 
   // ---------------- home ----------------
+  const countFor = (ids) => QUESTIONS.filter((q) => ids.includes(q.sec)).length;
+  function tile({ icon, name, sub, cls, onTap }) {
+    const b = document.createElement('button');
+    b.className = 'tile ' + cls;
+    b.innerHTML = `<span class="tile-icon">${icon}</span><span class="tile-name">${name}</span>` +
+      `<span class="tile-soon">${sub}</span>`;
+    b.addEventListener('click', () => { unlockMedia(); onTap(); });
+    return b;
+  }
+  function group(title, cls, tiles) {
+    const host = $('#home-body');
+    const t = document.createElement('div');
+    t.className = 'group-title';
+    t.textContent = title;
+    host.appendChild(t);
+    const grid = document.createElement('div');
+    grid.className = 'tiles ' + cls;
+    tiles.forEach((x) => grid.appendChild(x));
+    host.appendChild(grid);
+  }
   (function buildHome() {
-    const host = $('#tile-groups');
-    TESTS.forEach((g) => {
-      const t = document.createElement('div');
-      t.className = 'group-title';
-      t.textContent = g.group;
-      host.appendChild(t);
-      const grid = document.createElement('div');
-      grid.className = 'tiles';
-      g.items.forEach((it) => {
-        const ready = !!BANKS[it.id];
-        const b = document.createElement('button');
-        b.className = 'tile ' + (ready ? 'ready' : 'soon');
-        b.disabled = !ready;
-        b.innerHTML = `<span class="tile-icon">${it.icon}</span><span class="tile-name">${it.name}</span>` +
-          `<span class="tile-soon">${ready ? BANKS[it.id].questions.length + ' questions' : 'Coming soon'}</span>`;
-        if (ready) b.addEventListener('click', () => { unlockMedia(); startRound(it.id); });
-        grid.appendChild(b);
-      });
-      host.appendChild(grid);
+    const secTile = (s, cls) => tile({
+      icon: s.icon, name: s.name, sub: countFor([s.id]) + ' questions', cls,
+      onTap: () => startRound({ id: s.id, sections: [s.id], count: SECTION_ROUND }),
     });
+    group('⭐ The Big 3', 'tiles-big', SECTIONS.filter((s) => s.big).map((s) => secTile(s, 'ready big')));
+    group('More practice', '', SECTIONS.filter((s) => !s.big).map((s) => secTile(s, 'ready')));
+    group('Mix it up!', 'tiles-mix', MIXES.map((m) => tile({
+      icon: m.icon, name: m.name, sub: `${m.count} random questions<br><small>${m.blurb}</small>`, cls: 'ready mix',
+      onTap: () => startRound(m),
+    })));
   })();
 
   // ---------------- quiz ----------------
@@ -226,18 +220,18 @@
   let round = null;   // current round state
   let roundToken = 0; // bumps when a round is abandoned, so old timers do nothing
 
-  function startRound(bankId) {
-    const bank = BANKS[bankId];
+  function startRound(mode) {
     roundToken++;
-    const picks = shuffle(bank.questions).slice(0, QUESTIONS_PER_ROUND);
+    const pool = QUESTIONS.filter((q) => mode.sections.includes(q.sec));
+    const picks = shuffle(pool).slice(0, mode.count);
     picks.forEach((q) => { const im = new Image(); im.src = q.img; }); // preload
     round = {
-      bankId, bank,
+      mode,
       deck: picks.map((q) => ({ q, everMissed: false })),
       total: picks.length,
       mastered: 0,
       firstTry: 0,
-      firstQuestion: true,
+      introduced: new Set(), // sections whose instructions were read this round
       current: null,
       missedNow: false,
       locked: false,
@@ -250,6 +244,7 @@
   function renderStars() {
     const host = $('#stars');
     host.innerHTML = '';
+    host.classList.toggle('many', round.total > 10);
     for (let i = 0; i < round.total; i++) {
       const s = document.createElement('span');
       s.textContent = '⭐';
@@ -266,20 +261,32 @@
     h.classList.add('show');
   }
 
-  function nextQuestion() {
+  function pulseSound(on) { $('#btn-sound').classList.toggle('pulse', on); }
+
+  async function nextQuestion() {
     if (!round.deck.length) return finishRound();
+    const token = roundToken;
     round.current = round.deck.shift();
     round.missedNow = false;
     round.locked = false;
-    renderQuestion(round.current.q);
+    const q = round.current.q;
+    const sec = SEC[q.sec];
+    $('#sec-label').textContent = sec.icon + ' ' + sec.name;
+    renderQuestion(q);
+    setHint('');
 
-    if (round.firstQuestion) {
-      round.firstQuestion = false;
-      setHint(round.bank.instructions);
-      $('#btn-sound').classList.add('pulse');
-      speak(round.bank.instructions).then(() => $('#btn-sound').classList.remove('pulse'));
-    } else {
-      setHint('');
+    // instructions: only the first time each kind of question shows up this round
+    const parts = [];
+    if (!round.introduced.has(q.sec)) {
+      round.introduced.add(q.sec);
+      parts.push(sec.instructions);
+      setHint(sec.instructions);
+    }
+    if (q.prompt) parts.push(q.prompt); // Sentence Completion: read the question (never shown)
+    if (parts.length) {
+      pulseSound(true);
+      await speak(parts.join(' '));
+      if (token === roundToken) pulseSound(false);
     }
   }
 
@@ -301,21 +308,26 @@
     img.draggable = false;
     stage.appendChild(img);
 
-    const top = q.line + 0.035;
-    const gaps = q.bubbles.slice(1).map((c, i) => c - q.bubbles[i]);
-    const colW = Math.min(...gaps) * 0.96;
-    const bubbleTop = ((q.bubbleY - top) / (1 - top)) * 100;
+    const xs = q.choices.map((c) => c.x);
+    const gap = Math.min(...xs.slice(1).map((x, i) => x - xs[i]));
+    const colW = Math.min(gap * 0.96, 0.3);
+    const gapH = gap * r;                 // choice spacing, as a fraction of image height
+    const bubbleW = Math.min(colW * 0.36, 0.085);
 
-    q.bubbles.forEach((cx, i) => {
+    q.choices.forEach((c, i) => {
+      const top = Math.max(0, Math.min(c.top, c.y - gapH * 0.7));
+      const bottom = Math.min(1, c.y + bubbleW * r * 0.9);
       const b = document.createElement('button');
       b.className = 'choice';
       b.setAttribute('aria-label', 'Answer ' + (i + 1));
-      b.style.left = (cx - colW / 2) * 100 + '%';
+      b.style.left = (c.x - colW / 2) * 100 + '%';
       b.style.width = colW * 100 + '%';
       b.style.top = top * 100 + '%';
+      b.style.height = (bottom - top) * 100 + '%';
       const bub = document.createElement('span');
       bub.className = 'bubble';
-      bub.style.top = bubbleTop + '%';
+      bub.style.top = ((c.y - top) / (bottom - top)) * 100 + '%';
+      bub.style.width = (bubbleW / colW) * 100 + '%';
       b.appendChild(bub);
       b.addEventListener('click', () => choose(i, b, bub));
       stage.appendChild(b);
@@ -332,6 +344,7 @@
     if (i === q.answer) {
       round.locked = true;
       stopSpeaking();
+      pulseSound(false);
       document.querySelectorAll('.choice').forEach((c) => (c.disabled = true));
       setTimeout(() => {
         bub.classList.add('correct');
@@ -344,7 +357,7 @@
       }, 250);
 
       if (!round.missedNow) {
-        // got it right on the first try this time — it's done for this round
+        // right on the first try this time — done for this round
         round.mastered++;
         if (!round.current.everMissed) round.firstTry++;
         setTimeout(renderStars, 600);
@@ -361,6 +374,8 @@
       round.missedNow = true;
       round.locked = true;
       btn.disabled = true;
+      stopSpeaking();
+      pulseSound(false);
       $('#stage').classList.add('locked');
       setTimeout(() => {
         bub.insertAdjacentHTML('beforeend', X_SVG);
@@ -370,11 +385,15 @@
         card.classList.remove('shake', 'enter'); void card.offsetWidth; card.classList.add('shake');
       }, 200);
 
-      const msg = `Not quite. ${q.hint} Try again!`;
+      // what to say: a hint, the question again (Sentence Completion), or nothing (Paper Folding)
+      let spoken = null, shown = null;
+      if (q.hint) { spoken = `Not quite. ${q.hint} Try again!`; shown = spoken; }
+      else if (q.prompt) { spoken = `Not quite. Listen again. ${q.prompt} Try again!`; shown = '👂 Listen again… then try again!'; }
+
       await sleep(900);
       if (token !== roundToken) return;
-      setHint(msg, true);
-      await Promise.all([speak(msg), sleep(WRONG_LOCK_MS - 900)]);
+      if (shown) setHint(shown, true);
+      await Promise.all([speak(spoken), sleep(WRONG_LOCK_MS - 900)]);
       if (token !== roundToken || round.current.q !== q) return;
       round.locked = false;
       $('#stage').classList.remove('locked');
@@ -430,23 +449,26 @@
   }
 
   // ---------------- buttons ----------------
+  // 🔊 replays the Sentence Completion question, or the instructions for other kinds
   $('#btn-sound').addEventListener('click', () => {
-    if (!round) return;
+    if (!round || !round.current) return;
     unlockMedia();
-    const btn = $('#btn-sound');
-    btn.classList.add('pulse');
-    if (!round.missedNow || !round.locked) setHint(round.bank.instructions);
-    speak(round.bank.instructions).then(() => btn.classList.remove('pulse'));
+    const q = round.current.q;
+    const text = q.prompt || SEC[q.sec].instructions;
+    if (!q.prompt && !(round.locked && round.missedNow)) setHint(text);
+    pulseSound(true);
+    speak(text).then(() => pulseSound(false));
   });
   function goHome() {
     roundToken++;
     stopSpeaking();
+    pulseSound(false);
     setHint('');
     show('screen-home');
   }
   $('#btn-home').addEventListener('click', goHome);
   $('#btn-done-home').addEventListener('click', goHome);
-  $('#btn-again').addEventListener('click', () => { unlockMedia(); startRound(round.bankId); });
+  $('#btn-again').addEventListener('click', () => { unlockMedia(); startRound(round.mode); });
 
   // keep iPad from scrolling/bouncing the quiz page
   document.addEventListener('touchmove', (e) => {

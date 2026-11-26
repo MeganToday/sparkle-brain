@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="img/icon-180.png" />
   <link rel="icon" href="img/icon-180.png" />
   <title>Adele's Sparkle Brain</title>
-  <link rel="stylesheet" href="styles.css?v=2" />
+  <link rel="stylesheet" href="styles.css?v=3" />
 </head>
 <body>
   <div id="sparkles" aria-hidden="true"></div>
@@ -40,22 +40,18 @@
       <h1>✨ Adele's Sparkle Brain ✨</h1>
       <p class="sub">What do you want to practice?</p>
     </header>
-    <div class="home-body">
-      <button class="tile tile-test soon" disabled>
-        <span class="tile-icon">🏆</span>
-        <span class="tile-name">Practice Test</span>
-        <span class="tile-soon">Coming soon</span>
-      </button>
-      <div id="tile-groups"></div>
-    </div>
+    <div class="home-body" id="home-body"></div>
   </section>
 
   <!-- QUIZ -->
   <section id="screen-quiz" class="screen">
     <header class="quiz-head">
       <button class="round-btn" id="btn-home" aria-label="Home">🏠</button>
-      <div class="stars" id="stars"></div>
-      <button class="round-btn" id="btn-sound" aria-label="Read the instructions again">🔊</button>
+      <div class="head-mid">
+        <div class="sec-label" id="sec-label"></div>
+        <div class="stars" id="stars"></div>
+      </div>
+      <button class="round-btn" id="btn-sound" aria-label="Hear it again">🔊</button>
     </header>
     <main class="quiz-main">
       <div class="card" id="card">
@@ -79,7 +75,7 @@
     </div>
   </section>
 
-  <script src="data/figure-classification.js?v=2"></script>
-  <script src="app.js?v=2"></script>
+  <script src="data/questions.js?v=3"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>

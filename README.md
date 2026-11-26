@@ -1,6 +1,9 @@
-# Adele's Sparkle Brain — CCAT 7 / CogAT practice
+# Adele's Sparkle Brain — CogAT Form 7, Level 7 (1st grade) practice
 
-Static site (no build step): `index.html`, `styles.css`, `app.js`, question banks in `data/`, images in `img/`.
+Static site (no build step): `index.html`, `styles.css`, `app.js`, all questions in `data/questions.js`, images in `img/q/`.
+
+Content: TestingMom.com CogAT Form 7/8, 1st grade, Complete Practice Test 1 — 9 sections, 136 questions + 13 worked examples.
+Home: the Big 3 (Picture Analogies, Number Analogies, Figure Matrices), the other 6 sections, then Big 3 Mix and Everything Mix.
 
 ## Deploy to GitHub Pages
 1. Create a new repo on GitHub and upload everything in this folder (except `.claude/`).
@@ -13,10 +16,12 @@ the image files are still reachable by anyone who knows their exact URLs. `robot
 meta tags ask search engines not to list the site.
 
 ## Settings (top of `app.js`)
-- `QUESTIONS_PER_ROUND` — 10
+- `SECTION_ROUND` — 10 questions per section round
+- `MIX_ROUND` — 15 questions per mix round
 - `WRONG_LOCK_MS` — minimum wait after a wrong answer (also waits for the hint to finish being read)
 - `NEXT_DELAY_MS` — wait after a right answer before the next question
 
-## Adding a question type
-Add a `data/<type-id>.js` file that registers `window.QUESTION_BANKS['<type-id>']` (same shape as
-`figure-classification.js`), include it in `index.html`, and the matching home tile turns on automatically.
+## Editing questions
+Each question in `data/questions.js` has `answer` (0 = first bubble), `hint` (read aloud after a wrong answer;
+Paper Folding has none), and for Sentence Completion a `prompt` that is spoken but never shown. Bump the `?v=` numbers
+in `index.html` after editing so the iPad picks up the change right away.
