@@ -2,8 +2,11 @@
 
 Static site (no build step): `index.html`, `styles.css`, `app.js`, all questions in `data/questions.js`, images in `img/q/`.
 
-Content: TestingMom.com CogAT Form 7/8, 1st grade, Complete Practice Test 1 — 9 sections, 136 questions + 13 worked examples.
-Home: the Big 3 (Picture Analogies, Number Analogies, Figure Matrices), the other 6 sections, then Big 3 Mix and Everything Mix.
+Content (447 questions):
+- `data/questions.js` — TestingMom CogAT Form 7/8 1st grade Complete Practice Test 1 (136 + 13 worked examples), images in `img/q/`.
+- `data/questions-2.js` — TestingMom CogAT workbook + Practice Question Set (298, incl. 29 Odd One Out), images in `img/q2/`.
+  Choices there carry explicit tap boxes (`left/right/top/bottom`) and a bubble size `r`.
+Home: the Big 3 (Picture Analogies, Number Analogies, Figure Matrices), the other 7 sections (incl. Odd One Out), then Big 3 Mix and Everything Mix.
 
 ## Deploy to GitHub Pages
 1. Create a new repo on GitHub and upload everything in this folder (except `.claude/`).

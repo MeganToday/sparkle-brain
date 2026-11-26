@@ -41,7 +41,7 @@ window.SECTIONS = [
   "name": "Number Puzzles",
   "icon": "🚤",
   "big": false,
-  "instructions": "Look at the two tugboats. They should each pull the same number of red boxes. Which boat goes where the question mark is, so both tugboats pull the same number of red boxes?"
+  "instructions": "Look at the top and the bottom. They need to have the same number of things. Which one goes where the question mark is, so both have the same number?"
  },
  {
   "id": "number-series",

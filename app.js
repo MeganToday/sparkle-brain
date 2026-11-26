@@ -19,7 +19,7 @@
     { id: 'mix-big3', name: 'Big 3 Mix', icon: '🌟', sections: BIG3, count: MIX_ROUND,
       blurb: SECTIONS.filter((s) => s.big).map((s) => s.name).join(' · ') },
     { id: 'mix-all', name: 'Everything Mix', icon: '🌈', sections: SECTIONS.map((s) => s.id), count: MIX_ROUND,
-      blurb: 'All 9 kinds of questions' },
+      blurb: `All ${SECTIONS.length} kinds of questions` },
   ];
 
   const $ = (s) => document.querySelector(s);
@@ -225,7 +225,7 @@
 
   function startRound(mode) {
     roundToken++;
-    const pool = QUESTIONS.filter((q) => mode.sections.includes(q.sec));
+    const pool = QUESTIONS.filter((q) => (mode.only ? q.id === mode.only : mode.sections.includes(q.sec)));
     const picks = shuffle(pool).slice(0, mode.count);
     picks.forEach((q) => { const im = new Image(); im.src = q.img; }); // preload
     round = {
@@ -312,26 +312,36 @@
     img.draggable = false;
     stage.appendChild(img);
 
-    const xs = q.choices.map((c) => c.x);
-    const gap = Math.min(...xs.slice(1).map((x, i) => x - xs[i]));
+    const xs = q.choices.map((c) => c.x).sort((a, b) => a - b);
+    const gaps = xs.slice(1).map((x, i) => x - xs[i]).filter((g) => g > 0.03);
+    const gap = gaps.length ? Math.min(...gaps) : 0.25;
     const colW = Math.min(gap * 0.96, 0.3);
     const gapH = gap * r;                 // choice spacing, as a fraction of image height
     const bubbleW = Math.min(colW * 0.36, 0.085);
 
     q.choices.forEach((c, i) => {
-      const top = Math.max(0, Math.min(c.top, c.y - gapH * 0.7));
-      const bottom = Math.min(1, c.y + bubbleW * r * 0.9);
+      // newer questions carry an explicit tap box (left/right/bottom); older ones are a column around the bubble
+      const hasBox = c.left !== undefined && c.right !== undefined;
+      const left = hasBox ? c.left : c.x - colW / 2;
+      const width = hasBox ? c.right - c.left : colW;
+      // c.r = free white space around the printed bubble (fraction of image width), so the bubble never covers a picture
+      const bw = c.r ? Math.max(0.026, Math.min(c.r * 1.9, 0.07, width * 0.42))
+                     : Math.min(bubbleW, width * 0.42, 0.085);
+      const top = hasBox ? Math.max(0, Math.min(c.top, c.y - bw * r * 0.9))
+                         : Math.max(0, Math.min(c.top, c.y - gapH * 0.7));
+      const bottom = Math.min(1, Math.max(c.bottom || 0, c.y + bw * r * 0.9));
       const b = document.createElement('button');
       b.className = 'choice';
       b.setAttribute('aria-label', 'Answer ' + (i + 1));
-      b.style.left = (c.x - colW / 2) * 100 + '%';
-      b.style.width = colW * 100 + '%';
+      b.style.left = left * 100 + '%';
+      b.style.width = width * 100 + '%';
       b.style.top = top * 100 + '%';
       b.style.height = (bottom - top) * 100 + '%';
       const bub = document.createElement('span');
       bub.className = 'bubble';
       bub.style.top = ((c.y - top) / (bottom - top)) * 100 + '%';
-      bub.style.width = (bubbleW / colW) * 100 + '%';
+      bub.style.left = ((c.x - left) / width) * 100 + '%';
+      bub.style.width = (bw / width) * 100 + '%';
       b.appendChild(bub);
       b.addEventListener('click', () => choose(i, b, bub));
       stage.appendChild(b);
@@ -478,6 +488,9 @@
   $('#btn-home').addEventListener('click', goHome);
   $('#btn-done-home').addEventListener('click', goHome);
   $('#btn-again').addEventListener('click', () => { unlockMedia(); startRound(round.mode); });
+
+  // test hook: open one specific question by id (used for checking layouts)
+  window.__sparkle = { open: (id) => startRound({ id: 'test', sections: [], count: 1, only: id }) };
 
   // keep iPad from scrolling/bouncing the quiz page
   document.addEventListener('touchmove', (e) => {
